@@ -1,4 +1,4 @@
-const { Payable } = require('../database/models')
+const { Payable, sequelize } = require('../database/models')
 const moment = require('moment')
 const logger = require('../helpers/logger')
 
@@ -13,10 +13,9 @@ function buildPayable(transaction) {
 
   if (transaction.payment_method === 'credit_card') {
     payable.status = 'waiting_funds'
-    payable.fee = transaction.amount * CREDIT_FEE
+    payable.fee = Math.round(transaction.amount * CREDIT_FEE)
     payable.payment_date = moment().startOf('day').add(30, 'days')
-  }
-  else {
+  } else {
     payable.status = 'paid'
     payable.fee = transaction.amount * DEBIT_FEE
     payable.payment_date = moment().startOf('day')
@@ -33,18 +32,22 @@ const createPayable = async (transaction, dbTransaction) => {
 
   const payableData = buildPayable(transaction)
 
-  try {
-    await Payable.create(payableData, { transaction: dbTransaction })
-  }
-  catch (err) {
-    logger.error({
-      message: 'Error creating payable',
-      error: err
-    })
-    throw err
-  }
+  return await Payable.create(payableData, { transaction: dbTransaction })
+}
+
+const getBalance = async (status) => {
+  const balance = await Payable.findAll({
+    attributes: [sequelize.literal('COALESCE(SUM(amount - fee), 0) AS balance')],
+    where: {
+      status: status
+    },
+    raw: true
+  })
+
+  return balance[0]
 }
 
 module.exports = {
-  createPayable
+  createPayable,
+  getBalance
 }

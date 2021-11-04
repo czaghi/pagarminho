@@ -1,19 +1,13 @@
-const { Payable, sequelize } = require('../database/models')
 const logger = require('../helpers/logger')
+const { getBalance } = require('../services/payables')
 
 const getWaitingFunds = async (req, res) => {
   try {
     logger.info('Getting waiting_funds balance')
 
-    const waiting_funds = await Payable.findAll({
-      attributes: [sequelize.literal('COALESCE(SUM(amount - fee), 0) AS waiting_funds')],
-      where: {
-        status: 'waiting_funds'
-      },
-      raw: true
-    })
+    const balance = await getBalance('waiting_funds')
 
-    res.status(200).send(waiting_funds[0])
+    res.status(200).send(balance)
   } catch (err) {
     logger.error({
       message: 'Error getting waiting_funds balance',
@@ -28,15 +22,9 @@ const getAvailable = async (req, res) => {
   try {
     logger.info('Getting waiting_funds balance')
 
-    const available = await Payable.findAll({
-      attributes: [sequelize.literal('COALESCE(SUM(amount - fee), 0) AS available')],
-      where: {
-        status: 'paid'
-      },
-      raw: true
-    })
+    const balance = await getBalance('paid')
 
-    res.status(200).send(available[0])
+    res.status(200).send(balance)
   } catch (err) {
     logger.error({
       message: 'Error getting available balance',
