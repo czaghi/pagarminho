@@ -1,12 +1,12 @@
-const { Transaction, sequelize } = require('../database/models')
 const logger = require('../helpers/logger')
-const { createPayable } = require('../services/payables')
+const { sequelize } = require('../database/models')
+const { createTransaction, getTransactions } = require('../services/transactions')
 
-const getTransactions = async (req, res) => {
+const list = async (req, res) => {
   try {
     logger.info('Getting transactions')
 
-    const transactions = await Transaction.findAll()
+    const transactions = await getTransactions()
 
     res.status(200).send(transactions)
   } catch (err) {
@@ -15,13 +15,11 @@ const getTransactions = async (req, res) => {
       error: err
     })
 
-    res.status(500).send('Erro getting transaction')
+    res.status(500).send('Error getting transaction')
   }
 }
 
-const createTransaction = async (req, res) => {
-  const dbTransaction = await sequelize.transaction()
-
+const create = async (req, res) => {
   try {
     const transactionData = req.body
 
@@ -32,25 +30,22 @@ const createTransaction = async (req, res) => {
       payload: transactionData
     })
 
-    const transaction = await Transaction.create(transactionData, { transaction: dbTransaction })
-
-    await createPayable(transaction, dbTransaction)
-    await dbTransaction.commit()
+    const transaction = await sequelize.transaction(async (dbTransaction) => {
+      return await createTransaction(transactionData, dbTransaction)
+    })
 
     res.status(201).send(transaction)
   } catch (err) {
-    await dbTransaction.rollback()
-
     logger.error({
       message: 'Error creating transaction',
       error: err
     })
 
-    res.status(500).send('Erro creating transaction')
+    res.status(500).send('Error creating transaction')
   }
 }
 
 module.exports = {
-  getTransactions,
-  createTransaction
+  list,
+  create
 }
