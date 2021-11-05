@@ -1,8 +1,8 @@
-const express = require('express')
-const router = express.Router()
-
+const { Router } = require('express')
 const payables = require('./payables')
 const transactions = require('./transactions')
+
+const router = Router()
 
 router.use('/payables', payables)
 router.use('/transactions', transactions)
