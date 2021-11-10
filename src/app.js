@@ -1,6 +1,6 @@
 const express = require('express')
-const routes = require('./src/routes')
-const logger = require('./src/helpers/logger')
+const routes = require('./routes')
+const logger = require('./helpers/logger')
 
 const app = express()
 
